@@ -34,7 +34,7 @@ app.layout = html.Div(
                 ),
                 html.P(
                     ["Interactive US voting prediction map based off of user input. The predictive model used is a "
-                     "Gradient Boosted Random Forest, trained on data from ", html.A('The 2016 Cooperative '
+                     "CatBoostClassifier (gradient boosted decision trees), trained on data from ", html.A('The 2016 Cooperative '
                                                                                      'Congressional Election Study',
                                                                                      href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910/DVN/GDF6Z0"), ".", html.Br(), "Please fill in the responses as if you were responding before the 2016 election."],
                     className="header-description",
