@@ -1,19 +1,16 @@
 import dash
 from dash import dcc
 from dash import html
-import pandas as pd
 import numpy as np
 from dash.dependencies import Output, Input
 import os
 from threading import Timer
 import webbrowser
-import plotly.express as px
-from plotly.offline import plot
 import plotly.graph_objects as go
+from catboost import CatBoostClassifier
 
-data = pd.read_csv("avocado.csv")
-data["Date"] = pd.to_datetime(data["Date"], format="%Y-%m-%d")
-data.sort_values("Date", inplace=True)
+classifier = CatBoostClassifier()
+classifier.load_model("catboost_classifier")
 
 external_stylesheets = [
     {
@@ -22,6 +19,8 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
 ]
+# "Interactive US voting prediction map based off of user input. The model used is a Gradient Boosted Random Forest, trained on data from . Please fill in the responses as if you were responding before the 2016"
+#                              " election."
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.title = "2016 Voter Predictions"
 
@@ -33,7 +32,10 @@ app.layout = html.Div(
                     children="2016 Voter Predictions", className="header-title"
                 ),
                 html.P(
-                    children="Responsive US voting prediction map based off of user input.\nPlease fill in the responses as if you were responding before the 2016 election.",
+                    ["Interactive US voting prediction map based off of user input. The predictive model used is a "
+                     "Gradient Boosted Random Forest, trained on data from ", html.A('The 2016 Cooperative '
+                                                                                     'Congressional Election Study',
+                                                                                     href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi%3A10.7910/DVN/GDF6Z0"), ".", html.Br(), "Please fill in the responses as if you were responding before the 2016 election."],
                     className="header-description",
                 ),
             ],
@@ -77,8 +79,8 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="educ",
                             options=[
-                                {"label": key, "value": np.arange(1, 7)[['No HS', 'High school graduate','Some college', '2-year', '4-year', 'Post-grad'].index(key)]}
-                                for key in ['No HS', 'High school graduate','Some college', '2-year', '4-year', 'Post-grad']
+                                {"label": key, "value": np.arange(1, 7)[['No high school degree', 'High school graduate','Some college', '2-year', '4-year', 'Post-grad'].index(key)]}
+                                for key in ['No high school degree', 'High school graduate','Some college', '2-year', '4-year', 'Post-grad']
                             ],
                             value=1,
                             clearable=False,
@@ -250,16 +252,11 @@ app.layout = html.Div(
             className="menu3",
         ),
         html.Div(
-            children=[
-                html.Div(
-                    children=dcc.Graph(
-                        id="price-chart", config={"displayModeBar": False},
-                    ),
-                    className="card",
-                )
-            ],
+            children=dcc.Graph(
+                id="prediction-map", config={"displayModeBar": False},
+            ),
             className="wrapper",
-        ),
+        )
     ]
 )
 
@@ -275,12 +272,9 @@ state_codes = {
     'SC': '45', 'KY': '21', 'OR': '41', 'SD': '46'
 }
 
-state_codes_reversed = {v: k for k, v in state_codes.items()}
-temp_state_plotting = {key: 0.1 for key in state_codes.keys()}
-
 
 @app.callback(
-    Output("price-chart", "figure"),
+    Output("prediction-map", "figure"),
     [
         Input("gender", "value"),
         Input("age", "value"),
@@ -299,82 +293,49 @@ temp_state_plotting = {key: 0.1 for key in state_codes.keys()}
 )
 
 def update_state_figure(gender, age, educ,race,religion_imp, newsint, obama, nat_eco_dir, deport_imm, ban_ar, abortion, min_wage, gay_marriage):
-    # playing = np.asarray([*{key: 0.5 for key in state_codes.keys()}.values()])
-    # zz = (np.where(playing[:, 0] < 0.5, -playing[:, 1], playing[:, 0]) + 1) / 2
+    beg = [gender, age, educ, race]
+    end = [religion_imp, newsint, obama, nat_eco_dir, deport_imm, ban_ar, abortion, min_wage, gay_marriage]
+    probas = {}
+    for key in [*state_codes]:
+        probas[key] = return_probability(beg, state_codes[key], end)
+    layout = go.Layout(
+        margin=go.layout.Margin(l=0, r=0, b=10, t=10),
+        autosize=False,
+        width=1400,
+        height=478
+    )
     fig = go.Figure(data=go.Choropleth(
-        locations=[*temp_state_plotting],  # Spatial coordinates
-        z=[*temp_state_plotting.values()],  # Data to be color-coded
-        locationmode='USA-states',  # set of locations match entries in `locations`
-        colorscale=[[0, 'rgb(0,0,255)'], [0.3, 'rgb(200,200,255)'], [0.4, 'rgb(230,230,255)'], [0.5, 'rgb(255,255,255)'], [0.6, 'rgb(255,230,230)'],[0.7, 'rgb(255,200,200)'], [1, 'rgb(255,0,0)']],
+        locations=[*probas],
+        z=[*probas.values()],
+        locationmode='USA-states',
+        colorscale=[[0, 'rgb(0,0,255)'], [0.3, 'rgb(140,140,255)'], [0.4, 'rgb(200,200,255)'], [0.5, 'rgb(255,255,255)'], [0.6, 'rgb(255,200,200)'],[0.7, 'rgb(255,140,140)'], [1, 'rgb(255,0,0)']],
         zmin=0,
         zmax=1,
-        # colorbar_title='Binary Cross-entropy',
         colorbar=dict(
             title="Voting Probability",
             titleside="top",
             tickmode="array",
-            tickvals=[0.001, 0.25, 0.5, 0.75, 0.995],
-            ticktext=["100%", '75%',"50%", '75%', "100%"],
-            ticks="outside"
-        )
-    ))
-
+            tickvals=[0.001, 0.125, 0.25, 0.375, 0.5, 0.635, 0.75, 0.875, 0.995],
+            ticktext=["100%", '      Clinton', '75%','',"50%",'', '75%','      Trump', "100%"],
+            ticks="outside",
+        ),
+        hoverinfo='text',
+        hovertext=[key + '<br><br>' + f'Probability of voting for <br>Clinton: {np.round(1 - val, 4)}<br>Trump:   {val}' for key, val in probas.items()]
+        ),
+        layout=layout
+    )
     fig.update_layout(
-        title_text=f"{gender}, {age}, {educ}, {race}, {religion_imp}, {newsint}, {obama}, {nat_eco_dir}, {deport_imm}, {ban_ar}, {abortion}, {min_wage}, {gay_marriage}",
-        geo_scope='usa',  # limite map scope to USA
-        # coloraxis_colorbar=dict(
-        #     title="Population",
-        #     tickvals=[0, 0.2, 0.6, 1],
-        #     ticktext=["1M", "10M", "100M", "1B"])
+        # title_text=f'US map visualizing the probability someone with given responses<br>would have voted for Clinton (blue) or Trump (red), by state',
+        geo_scope='usa'
     )
     return fig
 
-# def update_charts(dum, age, educ,race,religion_imp, newsint, obama, nat_eco_dir, deport_imm, ban_ar, abortion, min_wage, gay_marriage):
-#     mask = (
-#         (data.region == "Albany")
-#         & (data.type == 'organic')
-#         & (data.Date >= data.Date.min().date())
-#         & (data.Date <= data.Date.max().date())
-#     )
-#     filtered_data = data.loc[mask, :]
-#     price_chart_figure = {
-#         "data": [
-#             {
-#                 "x": filtered_data["Date"],
-#                 "y": filtered_data["AveragePrice"],
-#                 "type": "lines",
-#                 "hovertemplate": "$%{y:.2f}<extra></extra>",
-#             },
-#         ],
-#         "layout": {
-#             "title": {
-#                 "text": f"{dum}, {age}, {educ},{race},  {religion_imp} {newsint} {obama} {nat_eco_dir} {deport_imm} {ban_ar} {abortion} {min_wage} {gay_marriage}",
-#                 "x": 0.05,
-#                 "xanchor": "left",
-#             },
-#             "xaxis": {"fixedrange": True},
-#             "yaxis": {"tickprefix": "$", "fixedrange": True},
-#             "colorway": ["#17B897"],
-#         },
-#     }
-#
-#     volume_chart_figure = {
-#         "data": [
-#             {
-#                 "x": filtered_data["Date"],
-#                 "y": filtered_data["Total Volume"],
-#                 "type": "lines",
-#             },
-#         ],
-#         "layout": {
-#             "title": {"text": "Avocados Sold", "x": 0.05, "xanchor": "left"},
-#             "xaxis": {"fixedrange": True},
-#             "yaxis": {"fixedrange": True},
-#             "colorway": ["#E12D39"],
-#         },
-#     }
-#     # return price_chart_figure
-#     return price_chart_figure, volume_chart_figure
+
+def return_probability(beg, state, end):
+    proba_predict = classifier.predict_proba(beg + [state] + end)
+    return np.round(proba_predict[0], 4)
+
+
 def open_browser():
     if not os.environ.get("WERKZEUG_RUN_MAIN"):
         webbrowser.open_new('http://127.0.0.1:8050/')

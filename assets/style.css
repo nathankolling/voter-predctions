@@ -5,24 +5,24 @@ body {
 }
 
 .header {
-    background-color: #222222;
+    background-color: #DDDDDD;
     /* height: 288px; */
     height: 180px;
-    padding: 16px 0 0 0;
+    padding: 8px 0 0 0;
 }
 
 
 .header-title {
-    color: #FFFFFF;
-    font-size: 48px;
+    color: #000000;
+    font-size: 34px;
     font-weight: bold;
     text-align: center;
     margin: 0 auto;
 }
 
 .header-description {
-    color: #CFCFCF;
-    margin: 4px auto;
+    color: #000000;
+    margin:0px;
     text-align: center;
     max-width: px;
 }
@@ -30,15 +30,13 @@ body {
 .wrapper {
     margin-right: auto;
     margin-left: auto;
-    max-width: 1024px;
-    padding-right: 10px;
-    padding-left: 10px;
-    margin-top: 32px;
-}
+    max-width: 1400px;
+    height: 478px;
+    padding-right: 0px;
+    padding-left: 0px;
+    margin-top: 8px;
+    margin-bottom: 0px;
 
-.card {
-    margin-bottom: 24px;
-    box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.18);
 }
 
 .menu {
@@ -91,12 +89,12 @@ body {
     vertical-align:bottom;
     padding: 5px 5px;
     font-weight: bold;
-    color: #079A82;
+    color: #000000;
 }
 .menu-title {
     max-width:250px;
     word-wrap:break-word;
     vertical-align:bottom;
     font-weight: bold;
-    color: #079A82;
+    color: #000000;
 }
