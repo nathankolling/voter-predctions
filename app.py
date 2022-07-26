@@ -22,6 +22,7 @@ external_stylesheets = [
 # "Interactive US voting prediction map based off of user input. The model used is a Gradient Boosted Random Forest, trained on data from . Please fill in the responses as if you were responding before the 2016"
 #                              " election."
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = app.server
 app.title = "2016 Voter Predictions"
 
 app.layout = html.Div(
