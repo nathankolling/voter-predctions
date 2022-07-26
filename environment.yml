@@ -1,6 +1,6 @@
 name: dash_app #Environment name
 dependencies:
-  - python=3.10
+  - python=3.9.5
   - pip:
     - dash==2.6.0
     - numpy==1.23.1
