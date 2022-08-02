@@ -19,8 +19,7 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
 ]
-# "Interactive US voting prediction map based off of user input. The model used is a Gradient Boosted Random Forest, trained on data from . Please fill in the responses as if you were responding before the 2016"
-#                              " election."
+
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 app.title = "2016 Voter Predictions"
@@ -326,7 +325,6 @@ def update_state_figure(gender, age, educ,race,religion_imp, newsint, obama, nat
         layout=layout
     )
     fig.update_layout(
-        # title_text=f'US map visualizing the probability someone with given responses<br>would have voted for Clinton (blue) or Trump (red), by state',
         geo_scope='usa'
     )
     return fig
