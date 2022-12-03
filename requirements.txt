@@ -1,4 +1,6 @@
 gunicorn
 dash
+dash-core-components
+dash-html-components
 numpy
 catboost
